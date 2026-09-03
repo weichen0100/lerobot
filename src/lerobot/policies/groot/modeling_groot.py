@@ -72,12 +72,17 @@ class GrootPolicy(PreTrainedPolicy):
         # Handle Flash Attention compatibility issues
         self._handle_flash_attention_compatibility()
 
+        # Local patch: load weights in bf16 when use_bf16 is enabled. Upstream loads in
+        # fp32 (params + grads + Adam states ~23GB), which does not fit on a 24GB GPU.
+        # bf16 params also keep grads/optimizer states in bf16, cutting fixed memory
+        # to ~11GB. This mirrors Isaac-GR00T's `--param-dtype bfloat16` finetune mode.
         model = GR00TN15.from_pretrained(
             pretrained_model_name_or_path=self.config.base_model_path,
             tune_llm=self.config.tune_llm,
             tune_visual=self.config.tune_visual,
             tune_projector=self.config.tune_projector,
             tune_diffusion_model=self.config.tune_diffusion_model,
+            torch_dtype=torch.bfloat16 if self.config.use_bf16 else None,
         )
 
         model.compute_dtype = "bfloat16" if self.config.use_bf16 else model.compute_dtype

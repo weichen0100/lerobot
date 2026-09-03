@@ -250,8 +250,11 @@ class FlowmatchingActionHead(nn.Module):
                 self.model.eval()
 
     def sample_time(self, batch_size, device, dtype):
-        sample = self.beta_dist.sample([batch_size]).to(device, dtype=dtype)
-        return (self.config.noise_s - sample) / self.config.noise_s
+        # Local patch: torch Beta/Dirichlet sampling is not implemented for bf16, so
+        # sample in fp32 (Beta concentrates are bf16 after the model cast) and cast back.
+        beta_dist = Beta(self.beta_dist.concentration1.float(), self.beta_dist.concentration0.float())
+        sample = beta_dist.sample([batch_size]).to(device=device, dtype=torch.float32)
+        return ((self.config.noise_s - sample) / self.config.noise_s).to(dtype)
 
     def prepare_input(self, batch: dict) -> BatchFeature:
         return BatchFeature(data=batch)

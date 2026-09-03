@@ -17,6 +17,8 @@
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any
 
+import os
+
 import numpy as np
 import torch
 from einops import rearrange
@@ -191,7 +193,7 @@ def _to_uint8_np_bhwc(img_t: torch.Tensor) -> np.ndarray:
 
 def _build_eagle_processor(tokenizer_assets_repo: str = DEFAULT_TOKENIZER_ASSETS_REPO) -> ProcessorMixin:
     # Validate that the cache directory is ready. If not, instruct the user.
-    cache_dir = HF_LEROBOT_HOME / tokenizer_assets_repo
+    cache_dir = HF_LEROBOT_HOME / os.path.expanduser(tokenizer_assets_repo)
     required = [
         cache_dir / "processor_config.json",
         cache_dir / "preprocessor_config.json",

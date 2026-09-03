@@ -18,6 +18,8 @@ from copy import deepcopy
 from dataclasses import dataclass
 from typing import Any
 
+import os
+
 import numpy as np
 import torch
 
@@ -142,7 +144,7 @@ def make_pi05_pre_post_processors(
         ),
         Pi05PrepareStateTokenizerProcessorStep(max_state_dim=config.max_state_dim),
         TokenizerProcessorStep(
-            tokenizer_name="google/paligemma-3b-pt-224",
+            tokenizer_name=os.path.expanduser("~/paligemma-3b-pt-224"),
             max_length=config.tokenizer_max_length,
             padding_side="right",
             padding="max_length",

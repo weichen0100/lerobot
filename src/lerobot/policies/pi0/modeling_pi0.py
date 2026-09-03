@@ -870,6 +870,9 @@ class PI0Policy(PreTrainedPolicy):
 
         # Initialize the core PI0 model
         self.model = PI0Pytorch(config)
+        
+        # Freeze VLM (vision tower + multi-modal projector + LLM)
+        self.model.paligemma_with_expert.paligemma.requires_grad_(False)
 
         # Enable gradient checkpointing if requested
         if config.gradient_checkpointing:

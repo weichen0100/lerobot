@@ -121,6 +121,16 @@ class Eagle25VLImageProcessorFast(BaseImageProcessorFast):
     def __init__(self, **kwargs: Unpack[Eagle25VLFastImageProcessorKwargs]):
         super().__init__(**kwargs)
 
+    def _prepare_image_like_inputs(self, images, do_convert_rgb=None, input_data_format=None, device=None):
+        # transformers renamed _prepare_input_images to _prepare_image_like_inputs in a later
+        # version than 4.53.x; delegate to the name available in this environment.
+        return self._prepare_input_images(
+            images=images,
+            do_convert_rgb=do_convert_rgb,
+            input_data_format=input_data_format,
+            device=device,
+        )
+
     @add_start_docstrings(
         # BASE_IMAGE_PROCESSOR_FAST_DOCSTRING_PREPROCESS, TODO: this was depreciated from transformers remove!
         """

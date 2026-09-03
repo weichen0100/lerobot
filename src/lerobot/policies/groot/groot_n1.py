@@ -17,6 +17,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+import os
+
 import numpy as np
 import torch
 import torch.nn as nn
@@ -75,7 +77,7 @@ class EagleBackbone(nn.Module):
 
         # Prefer loading Eagle model config from the cache directory where vendor files were copied.
         vendor_dir = DEFAULT_VENDOR_EAGLE_PATH
-        cache_dir = HF_LEROBOT_HOME / tokenizer_assets_repo
+        cache_dir = HF_LEROBOT_HOME / os.path.expanduser(tokenizer_assets_repo)
         try:
             ensure_eagle_cache_ready(vendor_dir, cache_dir, tokenizer_assets_repo)
         except Exception as exc:  # nosec: B110

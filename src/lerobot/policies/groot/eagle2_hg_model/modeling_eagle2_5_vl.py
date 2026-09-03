@@ -104,7 +104,9 @@ class Eagle25VLForConditionalGeneration(Eagle25VLPreTrainedModel, GenerationMixi
             self.vision_model = vision_model
         else:
             if config.vision_config.model_type == "siglip_vision_model":
-                config.vision_config._attn_implementation = "flash_attention_2"
+                # Local patch: upstream hardcodes flash_attention_2, which requires the flash_attn
+                # package; use sdpa so the vision tower runs without it.
+                config.vision_config._attn_implementation = "sdpa"
                 self.vision_model = SiglipVisionModel(config.vision_config)
             else:
                 raise NotImplementedError(f"{config.vision_config.model_type} is not implemented.")
