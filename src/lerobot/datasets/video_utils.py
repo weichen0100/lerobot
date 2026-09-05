@@ -33,14 +33,38 @@ from datasets.features.features import register_feature
 from PIL import Image
 
 
-def get_safe_default_codec():
+def _probe_default_codec() -> str:
+    """Return ``"torchcodec"`` only if it can actually be imported.
+
+    ``importlib.util.find_spec`` is not enough: torchcodec can be installed yet
+    fail to load its shared libraries (e.g. FFmpeg linked against a newer glib
+    than the one already loaded by a GUI toolkit such as PySide6/Qt). In that
+    case importing it raises at runtime, so probe with a real import.
+    """
     if importlib.util.find_spec("torchcodec"):
+        try:
+            import torchcodec  # noqa: F401
+        except Exception as e:
+            logging.warning(
+                "'torchcodec' is installed but failed to import (%s); falling back to 'pyav' as a default decoder",
+                e,
+            )
+            return "pyav"
         return "torchcodec"
-    else:
-        logging.warning(
-            "'torchcodec' is not available in your platform, falling back to 'pyav' as a default decoder"
-        )
-        return "pyav"
+    logging.warning(
+        "'torchcodec' is not available in your platform, falling back to 'pyav' as a default decoder"
+    )
+    return "pyav"
+
+
+_DEFAULT_CODEC: str | None = None
+
+
+def get_safe_default_codec():
+    global _DEFAULT_CODEC
+    if _DEFAULT_CODEC is None:
+        _DEFAULT_CODEC = _probe_default_codec()
+    return _DEFAULT_CODEC
 
 
 def decode_video_frames(
