@@ -72,6 +72,15 @@ def test_update_last_checkpoint(tmp_path):
     assert last_checkpoint.resolve() == checkpoint
 
 
+@patch.object(Path, "symlink_to", side_effect=OSError(38, "Function not implemented"))
+def test_update_last_checkpoint_tolerates_no_symlink_support(mock_symlink_to, tmp_path):
+    """Filesystems without symlink support (exFAT, some NTFS/FUSE mounts) raise ENOSYS."""
+    checkpoint = tmp_path / "0005"
+    checkpoint.mkdir()
+    update_last_checkpoint(checkpoint)  # must not abort the training run
+    assert not (tmp_path / LAST_CHECKPOINT_LINK).exists()
+
+
 @patch("lerobot.utils.train_utils.save_training_state")
 def test_save_checkpoint(mock_save_training_state, tmp_path, optimizer):
     policy = Mock()

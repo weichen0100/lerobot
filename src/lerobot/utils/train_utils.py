@@ -13,6 +13,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import logging
 from pathlib import Path
 
 from torch.optim import Optimizer
@@ -59,7 +60,21 @@ def update_last_checkpoint(checkpoint_dir: Path) -> Path:
     if last_checkpoint_dir.is_symlink():
         last_checkpoint_dir.unlink()
     relative_target = checkpoint_dir.relative_to(checkpoint_dir.parent)
-    last_checkpoint_dir.symlink_to(relative_target)
+    try:
+        last_checkpoint_dir.symlink_to(relative_target)
+    except OSError as exc:
+        # Filesystems without symlink support (exFAT, some NTFS/FUSE mounts)
+        # raise here (e.g. ENOSYS). The "last" link is only a convenience for
+        # interactive use — resuming resolves the checkpoint from config_path —
+        # so warn and continue instead of aborting the training run.
+        logging.warning(
+            "Could not update %s symlink to %s (%s). The filesystem likely does not "
+            "support symlinks; continuing without the %s link.",
+            last_checkpoint_dir,
+            relative_target,
+            exc,
+            LAST_CHECKPOINT_LINK,
+        )
 
 
 def save_checkpoint(
