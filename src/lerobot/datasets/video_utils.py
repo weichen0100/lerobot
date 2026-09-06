@@ -33,6 +33,9 @@ from datasets.features.features import register_feature
 from PIL import Image
 
 
+logger = logging.getLogger(__name__)
+
+
 def _probe_default_codec() -> str:
     """Return ``"torchcodec"`` only if it can actually be imported.
 
@@ -45,15 +48,13 @@ def _probe_default_codec() -> str:
         try:
             import torchcodec  # noqa: F401
         except Exception as e:
-            logging.warning(
-                "'torchcodec' is installed but failed to import (%s); falling back to 'pyav' as a default decoder",
-                e,
-            )
+            # Expected in GUI processes where a toolkit (e.g. PySide6/Qt) loads an
+            # older glib first; not worth a user-facing warning. Full traceback at DEBUG.
+            logger.info("'torchcodec' failed to import (%s); falling back to 'pyav' as a default decoder", e)
+            logger.debug("torchcodec import failed", exc_info=True)
             return "pyav"
         return "torchcodec"
-    logging.warning(
-        "'torchcodec' is not available in your platform, falling back to 'pyav' as a default decoder"
-    )
+    logger.warning("'torchcodec' is not available in your platform, falling back to 'pyav' as a default decoder")
     return "pyav"
 
 
