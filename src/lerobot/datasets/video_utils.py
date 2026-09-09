@@ -280,6 +280,22 @@ def decode_video_frames_torchcodec(
     average_fps = metadata.average_fps
     # convert timestamps to frame indices
     frame_indices = [round(ts * average_fps) for ts in timestamps]
+
+    # Some video files are missing their final encoded frame (e.g. the encoder dropped the last
+    # frame when concatenating several episodes into a single mp4), while the dataset metadata
+    # still queries it. Without clamping, such a query maps to an index just past the end of the
+    # stream and torchcodec raises "Invalid frame index". Clamp to the last available frame and
+    # relax the timestamp tolerance check for the clamped entries below.
+    last_index = metadata.num_frames - 1
+    clamped_positions = [pos for pos, idx in enumerate(frame_indices) if idx > last_index]
+    if clamped_positions:
+        logging.warning(
+            f"Clamping {len(clamped_positions)} out-of-range frame index(es) {frame_indices} to the last "
+            f"frame of the video (num_frames={metadata.num_frames}). The video is likely missing its final "
+            f"encoded frame: {video_path}"
+        )
+        frame_indices = [min(idx, last_index) for idx in frame_indices]
+
     # retrieve frames based on indices
     frames_batch = decoder.get_frames_at(indices=frame_indices)
 
@@ -297,6 +313,11 @@ def decode_video_frames_torchcodec(
     min_, argmin_ = dist.min(1)
 
     is_within_tol = min_ < tolerance_s
+    # Entries clamped above land on the last available frame, which is up to 1 frame period away
+    # from the queried timestamp. This is expected when the video is missing its final encoded
+    # frame, so don't reject it.
+    if clamped_positions:
+        is_within_tol[torch.tensor(clamped_positions)] = True
     assert is_within_tol.all(), (
         f"One or several query timestamps unexpectedly violate the tolerance ({min_[~is_within_tol]} > {tolerance_s=})."
         "It means that the closest frame that can be loaded from the video is too far away in time."
